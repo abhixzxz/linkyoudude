@@ -59,6 +59,14 @@ function loadSaved(): Saved {
   }
 }
 
+function saveComparison(data: Saved) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // Storage full or blocked; the comparison just isn't remembered.
+  }
+}
+
 let toastSeq = 0;
 
 const DESKTOP = "(min-width: 1024px)";
@@ -204,15 +212,25 @@ export function CompareScreen() {
   const resultRef = useRef<HTMLDivElement>(null);
   const isDesktop = useIsDesktop();
 
-  // Remember the comparison on this device (debounced).
+  // Remember the comparison on this device: debounced while typing, and
+  // immediately when the page is hidden, reloaded, or left.
+  const latest = useRef<Saved>({ left, right, options, mode });
   useEffect(() => {
-    const timer = setTimeout(() => {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ left, right, options, mode }));
-      } catch {}
-    }, 400);
+    latest.current = { left, right, options, mode };
+    const timer = setTimeout(() => saveComparison(latest.current), 400);
     return () => clearTimeout(timer);
   }, [left, right, options, mode]);
+  useEffect(() => {
+    const save = () => saveComparison(latest.current);
+    const onVisibility = () => document.visibilityState === "hidden" && save();
+    window.addEventListener("pagehide", save);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      save();
+      window.removeEventListener("pagehide", save);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
 
   const toast = useCallback((tone: Toast["tone"], message: string) => {
     const id = `t${++toastSeq}`;
