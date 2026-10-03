@@ -194,7 +194,7 @@ export function NoteEditor({
           <button
             type="button"
             onClick={onDelete}
-            className={buttonClass("danger", "lg", "hidden lg:inline-flex")}
+            className={buttonClass("danger", "lg", "max-lg:hidden")}
           >
             <TrashIcon />
             Delete

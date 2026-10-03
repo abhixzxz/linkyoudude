@@ -335,7 +335,7 @@ export function CompareScreen() {
               <CloseIcon size={16} />
               <span className="max-sm:sr-only">Clear both</span>
             </button>
-            <Link href="/" className={buttonClass("secondary", "sm", "hidden sm:inline-flex")}>
+            <Link href="/" className={buttonClass("secondary", "sm", "max-sm:hidden")}>
               Home
             </Link>
           </div>
@@ -344,7 +344,7 @@ export function CompareScreen() {
 
       {/* Summary + options */}
       <div className="shrink-0 border-b border-line bg-bg/60">
-        <div className="mx-auto flex w-full max-w-[90rem] items-center gap-2 overflow-x-auto px-4 py-2.5 sm:px-6 [scrollbar-width:none]">
+        <div className="mx-auto flex w-full max-w-[90rem] items-center gap-2 overflow-x-auto px-4 py-2.5 [scrollbar-width:none] max-lg:[mask-image:linear-gradient(to_right,black_88%,transparent)] sm:px-6">
           {empty ? (
             <span className="shrink-0 text-sm text-ink-3">Paste two versions to see what changed.</span>
           ) : same ? (
