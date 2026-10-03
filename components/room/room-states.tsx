@@ -116,10 +116,10 @@ export function EmptyRoom({
   onShare: () => void;
 }) {
   return (
-    <div className="flex flex-1 items-center justify-center rounded-3xl border border-dashed border-line-strong bg-surface/60 px-6 py-14 lg:py-0">
+    <div className="flex flex-1 items-center justify-center rounded-3xl border border-dashed border-line-strong bg-surface/60 px-5 py-8 lg:py-0">
       <div className="flex max-w-sm flex-col items-center text-center">
-        <div className="mb-5 flex size-14 items-center justify-center rounded-2xl bg-accent-soft text-accent-soft-ink">
-          <ClipboardIcon size={26} />
+        <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-accent-soft text-accent-soft-ink sm:mb-5 sm:size-14">
+          <ClipboardIcon size={24} />
         </div>
         <h2 className="text-xl font-semibold tracking-tight">This room is empty</h2>
         <p className="mt-2 text-[15px] leading-relaxed text-ink-2">

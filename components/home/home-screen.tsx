@@ -117,59 +117,70 @@ export function HomeScreen() {
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="pt-[env(safe-area-inset-top)]">
-        <div className="mx-auto flex h-16 w-full max-w-5xl items-center px-4 sm:px-6">
+        <div className="mx-auto flex h-14 w-full max-w-5xl items-center px-4 sm:h-16 sm:px-6">
           <Brand />
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 pb-16 pt-8 sm:px-6 sm:pt-16">
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 pb-6 pt-4 [@media(max-height:600px)]:gap-4 [@media(max-height:600px)]:pb-4 sm:gap-8 sm:px-6 sm:pb-16 sm:pt-16">
         <section className="mx-auto max-w-2xl text-center">
-          <p className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-[13px] font-medium text-ink-2 shadow-card">
+          <p className="hidden items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-[13px] font-medium text-ink-2 shadow-card sm:inline-flex">
             <span className="size-1.5 rounded-full bg-success" />
             A live clipboard for all your devices
           </p>
-          <h1 className="mt-6 text-[2.6rem] font-semibold leading-[1.05] tracking-[-0.035em] sm:text-6xl">
+          <h1 className="text-[2rem] font-semibold leading-[1.08] tracking-[-0.035em] min-[400px]:text-[2.25rem] sm:mt-6 sm:text-6xl">
             Paste here.{" "}
             <span className="font-display text-[1.12em] font-normal tracking-[-0.01em] text-accent">
               Copy there.
             </span>
           </h1>
-          <p className="mx-auto mt-5 max-w-lg text-[17px] leading-relaxed text-ink-2">
-            Drop a prompt into a room on your laptop and it&apos;s on your phone before you can
-            unlock it. No sign-up, no texting yourself.
+          <p className="mx-auto mt-2.5 max-w-lg text-[15px] leading-relaxed text-ink-2 [@media(max-height:560px)]:hidden sm:mt-5 sm:text-[17px]">
+            Drop text into a room on one device and copy it on another, instantly.
+            <span className="hidden sm:inline"> No sign-up, no texting yourself.</span>
           </p>
         </section>
 
-        <section className="grid gap-4 sm:grid-cols-2">
-          <div className="flex flex-col rounded-3xl border border-line bg-surface p-6 shadow-card sm:p-7">
-            <div className="flex size-11 items-center justify-center rounded-2xl bg-accent-soft text-accent-soft-ink">
+        <section className="rounded-3xl border border-line bg-surface p-5 shadow-card sm:grid sm:grid-cols-2 sm:gap-4 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+          <div className="flex flex-col sm:rounded-3xl sm:border sm:border-line sm:bg-surface sm:p-7 sm:shadow-card">
+            <div className="hidden size-11 items-center justify-center rounded-2xl bg-accent-soft text-accent-soft-ink sm:flex">
               <PlusIcon size={22} />
             </div>
-            <h2 className="mt-5 text-xl font-semibold tracking-tight">Create room</h2>
-            <p className="mt-1.5 flex-1 text-[15px] leading-relaxed text-ink-2">
+            <h2 className="text-lg font-semibold tracking-tight sm:mt-5 sm:text-xl">Create room</h2>
+            <p className="mt-1.5 hidden flex-1 text-[15px] leading-relaxed text-ink-2 sm:block">
               Start a fresh room, then open it on any other device with its ID or QR code.
             </p>
-            <CreateRoomButton className="mt-6" label="Create Room" />
+            <CreateRoomButton className="mt-3 sm:mt-6" label="Create Room" />
           </div>
 
-          <div id="join" className="flex scroll-mt-6 flex-col rounded-3xl border border-line bg-surface p-6 shadow-card sm:p-7">
-            <div className="flex size-11 items-center justify-center rounded-2xl bg-accent-soft text-accent-soft-ink">
+          <div className="my-4 flex items-center gap-3 text-xs font-medium uppercase tracking-wider text-ink-3 sm:hidden" aria-hidden="true">
+            <span className="h-px flex-1 bg-line" />
+            or
+            <span className="h-px flex-1 bg-line" />
+          </div>
+
+          <div id="join" className="flex scroll-mt-6 flex-col sm:rounded-3xl sm:border sm:border-line sm:bg-surface sm:p-7 sm:shadow-card">
+            <div className="hidden size-11 items-center justify-center rounded-2xl bg-accent-soft text-accent-soft-ink sm:flex">
               <LinkIcon size={22} />
             </div>
-            <h2 className="mt-5 text-xl font-semibold tracking-tight">Join room</h2>
-            <p className="mt-1.5 flex-1 text-[15px] leading-relaxed text-ink-2">
-              Enter the room ID from your other device, or paste an invitation link.
+            <h2 className="text-lg font-semibold tracking-tight sm:mt-5 sm:text-xl">Join room</h2>
+            <p className="mt-1 flex-1 text-sm leading-relaxed text-ink-2 sm:mt-1.5 sm:text-[15px]">
+              Enter the ID from your other device<span className="hidden sm:inline">, or paste an invitation link</span>.
             </p>
-            <div className="mt-6">
+            <div className="mt-3 sm:mt-6">
               <JoinForm />
             </div>
           </div>
         </section>
 
         <RecentRooms />
-        <InstallHint />
+        <div className="sm:hidden">
+          <InstallHint compact />
+        </div>
+        <div className="hidden sm:block">
+          <InstallHint />
+        </div>
 
-        <section aria-label="How it works" className="grid gap-3 sm:grid-cols-3">
+        <section aria-label="How it works" className="hidden gap-3 sm:grid sm:grid-cols-3">
           {STEPS.map((step, index) => (
             <div key={step.title} className="rounded-2xl border border-line/70 p-5">
               <span className="font-mono text-xs font-semibold text-accent">0{index + 1}</span>
@@ -180,8 +191,8 @@ export function HomeScreen() {
         </section>
       </main>
 
-      <footer className="pb-[max(1.5rem,env(safe-area-inset-bottom))] text-center text-xs text-ink-3">
-        Anyone with a room&apos;s ID can read and edit it — share it only with your own devices.
+      <footer className="px-6 pb-[max(1rem,env(safe-area-inset-bottom))] text-center text-xs leading-relaxed text-ink-3 [@media(max-height:600px)]:hidden">
+        Anyone with a room&apos;s ID can read and edit it<span className="hidden sm:inline"> — share it only with your own devices</span>.
       </footer>
     </div>
   );

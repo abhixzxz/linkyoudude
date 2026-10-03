@@ -23,7 +23,37 @@ export default function manifest(): MetadataRoute.Manifest {
     share_target: {
       action: "/share",
       method: "GET",
+      enctype: "application/x-www-form-urlencoded",
       params: { title: "title", text: "text", url: "url" },
     },
+    // Long-press the app icon for a one-tap new room.
+    shortcuts: [
+      {
+        name: "New room",
+        short_name: "New room",
+        description: "Create a fresh room",
+        url: "/new",
+        icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+      },
+    ],
+    // Reopening the installed app (or sharing into it) reuses the open window.
+    launch_handler: { client_mode: ["navigate-existing", "auto"] },
+    // Shown in the richer install dialog on Android and desktop Chrome.
+    screenshots: [
+      {
+        src: "/screenshots/phone.png",
+        sizes: "780x1688",
+        type: "image/png",
+        form_factor: "narrow",
+        label: "A room on your phone: tap Copy and go",
+      },
+      {
+        src: "/screenshots/desktop.png",
+        sizes: "1440x900",
+        type: "image/png",
+        form_factor: "wide",
+        label: "Notes sidebar and editor on your laptop",
+      },
+    ],
   };
 }
