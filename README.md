@@ -34,9 +34,15 @@ Browser ──HTTP (validated writes)──▶ Next.js API routes ──service 
   Failed saves retry with backoff. Unsaved drafts are also cached in
   `localStorage`, so they survive a reload while offline. If the socket is down,
   the page polls every 10 s.
-- **PWA:** installable (manifest, icons, service worker). Visited pages open
-  offline, with `/offline` as the fallback. On Android the installed app appears
-  in the share sheet: share text from any app straight into a room.
+- **PWA:** installable (manifest, icons, screenshots, service worker). Visited
+  pages open offline, with `/offline` as the fallback. Long-press the app icon
+  for a **New room** shortcut. On Android the installed app also appears in the
+  share sheet, so you can share text from any app straight into a room. Install
+  and service workers need HTTPS, so test them on the Vercel deployment, not on
+  `http://<LAN-IP>:3000`.
+- **Mobile:** a room is a fixed app shell sized to the visible viewport, so the
+  page itself never scrolls (only the notes list and the note text do) and the
+  editor stays above the on-screen keyboard.
 
 Access is scoped to the room: anyone with the room ID (or link) can read and
 edit that room, and nobody else can. IDs are random (31^10 ≈ 8×10^14).
