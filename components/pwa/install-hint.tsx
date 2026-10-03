@@ -17,7 +17,7 @@ function readDismissed() {
   }
 }
 
-export function InstallHint() {
+export function InstallHint({ compact = false }: { compact?: boolean }) {
   const canPrompt = useCanPromptInstall();
   const standalone = useClientValue(
     () =>
@@ -44,12 +44,18 @@ export function InstallHint() {
   };
 
   return (
-    <div className="flex items-center gap-4 rounded-3xl border border-line bg-surface p-4 shadow-card sm:p-5">
-      <BrandMark size={44} />
+    <div
+      className={`flex items-center rounded-3xl border border-line bg-surface shadow-card ${
+        compact ? "gap-3 p-3 text-sm" : "gap-4 p-4 sm:p-5"
+      }`}
+    >
+      <BrandMark size={compact ? 36 : 44} />
       <div className="min-w-0 flex-1">
-        <p className="font-semibold tracking-tight">Install Link Your Dude</p>
+        <p className="font-semibold tracking-tight">{compact ? "Install the app" : "Install Link Your Dude"}</p>
         {canPrompt ? (
-          <p className="mt-0.5 text-sm text-ink-2">Open it from your home screen like an app.</p>
+          <p className="mt-0.5 text-sm text-ink-2">
+            {compact ? "One tap from your home screen." : "Open it from your home screen like an app."}
+          </p>
         ) : (
           <p className="mt-0.5 text-sm text-ink-2">
             Tap <ShareIcon size={15} className="-mt-0.5 inline" aria-label="Share" /> in Safari, then{" "}
@@ -58,7 +64,11 @@ export function InstallHint() {
         )}
       </div>
       {canPrompt && (
-        <button type="button" onClick={() => void promptInstall()} className={buttonClass("primary", "md")}>
+        <button
+          type="button"
+          onClick={() => void promptInstall()}
+          className={buttonClass("primary", compact ? "sm" : "md")}
+        >
           <DownloadIcon />
           Install
         </button>

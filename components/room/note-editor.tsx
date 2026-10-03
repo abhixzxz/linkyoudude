@@ -87,7 +87,7 @@ export function NoteEditor({
       className="flex min-h-0 flex-1 flex-col overflow-hidden bg-surface lg:rounded-3xl lg:border lg:border-line lg:shadow-card"
       aria-label="Note editor"
     >
-      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-line px-2 lg:hidden">
+      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-line px-2 keyboard-open:h-12 lg:hidden">
         <button type="button" onClick={onBack} className={buttonClass("ghost", "md", "px-3")}>
           <ArrowLeftIcon />
           Notes
@@ -123,7 +123,7 @@ export function NoteEditor({
             bodyRef.current?.focus();
           }
         }}
-        className="w-full shrink-0 bg-transparent px-5 pt-5 text-xl font-semibold tracking-tight text-ink outline-none placeholder:text-ink-3 sm:px-7 sm:pt-7 sm:text-2xl"
+        className="w-full shrink-0 bg-transparent px-5 pt-5 text-xl font-semibold tracking-tight text-ink outline-none placeholder:text-ink-3 keyboard-open:pt-3 keyboard-open:text-lg sm:px-7 sm:pt-7 sm:text-2xl"
       />
       <textarea
         ref={bodyRef}
@@ -137,10 +137,10 @@ export function NoteEditor({
         placeholder="Paste or type anything. It appears on your other devices as you type."
         aria-label="Note text"
         spellCheck={false}
-        className="min-h-0 w-full flex-1 resize-none bg-transparent px-5 pb-6 pt-3 text-base leading-relaxed text-ink outline-none placeholder:text-ink-3 sm:px-7 lg:text-[15px] lg:leading-7"
+        className="min-h-0 w-full flex-1 resize-none overscroll-contain bg-transparent px-5 pb-6 pt-3 text-base leading-relaxed text-ink outline-none placeholder:text-ink-3 keyboard-open:pb-3 sm:px-7 lg:text-[15px] lg:leading-7"
       />
 
-      <footer className="flex shrink-0 flex-col gap-3 border-t border-line bg-surface/90 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:flex-row sm:items-center sm:px-5 lg:pb-3">
+      <footer className="flex shrink-0 flex-col gap-3 border-t border-line bg-surface/90 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur keyboard-open:py-2 sm:flex-row sm:items-center sm:px-5 lg:pb-3">
         <div className="hidden min-w-0 items-center gap-3 text-xs text-ink-3 sm:flex">
           <span className={nearLimit ? "text-warning" : undefined}>
             {chars.toLocaleString()}
@@ -166,7 +166,7 @@ export function NoteEditor({
             variant="primary"
             size="lg"
             disabled={!note.body}
-            className="h-14 flex-1 text-base sm:h-12 sm:flex-none sm:px-7"
+            className="h-14 flex-1 text-base keyboard-open:h-11 sm:h-12 sm:flex-none sm:px-7"
           />
         </div>
       </footer>

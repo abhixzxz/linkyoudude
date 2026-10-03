@@ -322,7 +322,13 @@ export function RoomScreen({ roomId }: { roomId: string }) {
       <ToastStack
         toasts={toasts}
         onDismiss={dismissToast}
-        className={editingOnPhone ? "bottom-24" : notes.length > 0 ? "bottom-[5.5rem]" : "bottom-4"}
+        className={
+          editingOnPhone
+            ? "bottom-[calc(6rem+env(safe-area-inset-bottom))] keyboard-open:bottom-20"
+            : notes.length > 0
+              ? "bottom-[calc(5.5rem+env(safe-area-inset-bottom))]"
+              : "bottom-[calc(1rem+env(safe-area-inset-bottom))]"
+        }
       />
     </div>
   );
