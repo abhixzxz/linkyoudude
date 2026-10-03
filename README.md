@@ -44,6 +44,23 @@ Browser ──HTTP (validated writes)──▶ Next.js API routes ──service 
   page itself never scrolls (only the notes list and the note text do) and the
   editor stays above the on-screen keyboard.
 
+- **Beautify:** the editor's top bar formats the note. JSON is pretty-printed
+  without changing values (big numbers and escapes are kept exactly), and common
+  copy-paste damage is repaired: trailing commas, comments, 'single' or “smart”
+  quotes, unquoted keys, Python `True`/`None`. JSON inside prose or ``` fences
+  is formatted in place, and other text gets its spacing tidied. A badge shows
+  whether the note is valid JSON, a syntax error reports its line, and Undo
+  reverts the change.
+- **Compare** (`/compare`): paste two versions and get a line and word diff with
+  change counts (changes, added, removed, modified), side-by-side or unified,
+  with options to ignore spaces, case, or JSON formatting. Identical texts show
+  "No changes" on both sides. The last comparison is remembered on the device.
+- **Room limit:** each browser can own up to 5 rooms (`MAX_ROOMS_PER_OWNER`).
+  Creating a 6th asks for confirmation, then deletes the oldest room and its
+  notes. Devices still inside it are told immediately. Ownership is an anonymous
+  ID in an httpOnly cookie, so there's no login. The cap is enforced atomically
+  in `lyd_create_room`.
+
 Access is scoped to the room: anyone with the room ID (or link) can read and
 edit that room, and nobody else can. IDs are random (31^10 ≈ 8×10^14).
 
@@ -52,6 +69,9 @@ edit that room, and nobody else can. IDs are random (31^10 ≈ 8×10^14).
 1. **Create a Supabase project** (the free plan is fine) at https://supabase.com.
 2. **Create the schema:** open *SQL Editor*, paste the contents of
    [`supabase/schema.sql`](supabase/schema.sql), and run it. It's safe to re-run.
+   **Re-run it after pulling updates.** It upgrades an existing database in
+   place: for example, the room limit adds `rooms.owner_id` and replaces
+   `lyd_create_room`.
 3. **Realtime settings:** the defaults work. Broadcast and presence on public
    channels are enabled out of the box. If you turned off *"Allow public access"*
    under Realtime → Settings, turn it back on.
