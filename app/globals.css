@@ -75,9 +75,29 @@
   --font-display: var(--font-instrument-serif), ui-serif, Georgia, serif;
 }
 
+/* Phone keyboard is up (set by lib/use-visual-viewport.ts). */
+@custom-variant keyboard-open (&:where(html[data-keyboard="open"] *));
+
 html {
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;
+  /* No double-tap zoom delay on buttons. */
+  touch-action: manipulation;
+}
+
+/* Room pages are a fixed app shell: only inner panels scroll. */
+html.app-shell,
+html.app-shell body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* Installed app: no rubber-band bounce or pull-to-refresh on the page. */
+@media (display-mode: standalone) {
+  html,
+  body {
+    overscroll-behavior-y: none;
+  }
 }
 
 body {

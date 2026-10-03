@@ -5,11 +5,13 @@ import { readClipboardText } from "@/lib/clipboard";
 import { forgetRoom, rememberRoom } from "@/lib/recent-rooms";
 import { roomPath } from "@/lib/room-id";
 import { useRoomEngine } from "@/lib/use-room-engine";
+import { useVisualViewport } from "@/lib/use-visual-viewport";
 import { useNow, useOrigin } from "@/lib/use-client-value";
 import { buttonClass } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { ClipboardIcon, PlusIcon } from "@/components/ui/icons";
 import { ToastStack, type Toast } from "@/components/ui/toasts";
+import { InstallHint } from "@/components/pwa/install-hint";
 import { NoteEditor } from "./note-editor";
 import { NoteList, noteDisplayTitle } from "./note-list";
 import { RoomHeader } from "./room-header";
@@ -27,6 +29,7 @@ let toastSeq = 0;
 
 export function RoomScreen({ roomId }: { roomId: string }) {
   const { engine, view } = useRoomEngine(roomId);
+  useVisualViewport();
   const origin = useOrigin();
   const now = useNow();
   const inviteLink = origin ? `${origin}${roomPath(roomId)}` : "";
@@ -142,7 +145,9 @@ export function RoomScreen({ roomId }: { roomId: string }) {
   const showRoom = status === "ready";
 
   return (
-    <div className="flex min-h-dvh flex-col lg:h-dvh">
+    // App shell pinned to the visible viewport: the page never scrolls, only
+    // the notes list and the note text do, and it shrinks above the keyboard.
+    <div className="fixed inset-x-0 top-[var(--vv-top,0px)] flex h-[var(--vv-height,100dvh)] flex-col overflow-hidden">
       <RoomHeader
         roomId={roomId}
         inviteLink={inviteLink}
@@ -150,22 +155,29 @@ export function RoomScreen({ roomId }: { roomId: string }) {
         devices={view.devices}
         onShare={() => setShareOpen(true)}
         showRoomControls={status !== "not_found"}
+        className={editingOnPhone ? "hidden lg:block" : ""}
       />
 
-      {status === "loading" && <RoomLoading />}
-      {status === "not_found" && <RoomNotFound roomId={roomId} />}
-      {status === "error" && <RoomError message={view.errorMessage} onRetry={() => engine.retry()} />}
-      {status === "not_configured" && <RoomNotConfigured message={view.errorMessage} />}
+      {!showRoom && (
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          {status === "loading" && <RoomLoading />}
+          {status === "not_found" && <RoomNotFound roomId={roomId} />}
+          {status === "error" && <RoomError message={view.errorMessage} onRetry={() => engine.retry()} />}
+          {status === "not_configured" && <RoomNotConfigured message={view.errorMessage} />}
+        </div>
+      )}
 
       {showRoom && (
         <>
           {(view.connection === "offline" || view.sync === "unsynced") && (
             <div
               role="status"
-              className="border-b border-warning/30 bg-warning/10 px-4 py-2.5 text-center text-[13px] text-ink sm:px-6"
+              className={`shrink-0 border-b border-warning/30 bg-warning/10 px-4 py-2 text-center text-[13px] leading-snug text-ink sm:px-6 ${
+                editingOnPhone ? "pt-[max(0.5rem,env(safe-area-inset-top))] lg:pt-2" : ""
+              }`}
             >
               {view.connection === "offline" ? "You're offline. " : "Some changes haven't synced yet. "}
-              Your edits are kept on this device and will sync automatically.{" "}
+              <span className="hidden sm:inline">Your edits are kept on this device and will sync automatically. </span>
               <button
                 type="button"
                 onClick={() => engine.retry()}
@@ -176,14 +188,55 @@ export function RoomScreen({ roomId }: { roomId: string }) {
             </div>
           )}
 
-          <main className="mx-auto flex min-h-0 w-full max-w-[90rem] flex-1 gap-5 lg:px-6 lg:py-5">
-            {/* Notes list (sidebar on desktop, the main view on phones) */}
+          <main className="mx-auto flex min-h-0 w-full max-w-[90rem] flex-1 lg:gap-5 lg:px-6 lg:py-5">
+            {/* Notes list: sidebar on desktop, the main view on phones. */}
             <aside
-              className={`min-h-0 w-full flex-col gap-3 px-4 pb-8 pt-4 sm:px-6 lg:flex lg:w-[22rem] lg:shrink-0 lg:px-0 lg:pb-0 lg:pt-0 ${
+              className={`min-h-0 w-full flex-col lg:flex lg:w-[22rem] lg:shrink-0 ${
                 editingOnPhone ? "hidden" : "flex"
               }`}
             >
-              <div className="flex gap-2">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 lg:-mx-1 lg:px-1 lg:py-1">
+                {!view.synced && notes.length > 0 && (
+                  <p className="mb-3 text-center text-xs text-ink-3">Showing saved copy · syncing…</p>
+                )}
+                {notes.length > 0 ? (
+                  <NoteList
+                    notes={notes}
+                    activeId={activeNote?.id ?? null}
+                    now={now}
+                    onSelect={(id) => openNote(id)}
+                  />
+                ) : (
+                  <div className="flex min-h-full flex-col lg:hidden">
+                    <EmptyRoom
+                      roomId={roomId}
+                      onNewNote={newNote}
+                      onPaste={pasteAsNote}
+                      onShare={() => setShareOpen(true)}
+                    />
+                  </div>
+                )}
+                {notes.length > 0 && (
+                  <div className="mt-4">
+                    <InstallHint compact />
+                  </div>
+                )}
+              </div>
+
+              {/* Phones: thumb-reachable bottom bar. Desktop: top of the sidebar. */}
+              <div
+                className={`shrink-0 gap-2 border-t border-line bg-bg/90 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl sm:px-6 lg:order-first lg:flex lg:border-0 lg:bg-transparent lg:px-0 lg:pb-3 lg:pt-0 lg:backdrop-blur-none ${
+                  notes.length === 0 ? "hidden" : "flex"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={pasteAsNote}
+                  className={buttonClass("secondary", "md", "h-12 flex-1 lg:order-last lg:h-11")}
+                >
+                  <ClipboardIcon />
+                  Paste
+                </button>
                 <button
                   type="button"
                   onClick={newNote}
@@ -192,44 +245,14 @@ export function RoomScreen({ roomId }: { roomId: string }) {
                   <PlusIcon />
                   New note
                 </button>
-                <button
-                  type="button"
-                  onClick={pasteAsNote}
-                  className={buttonClass("secondary", "md", "h-12 flex-1 lg:h-11")}
-                >
-                  <ClipboardIcon />
-                  Paste
-                </button>
               </div>
-              {!view.synced && notes.length > 0 && (
-                <p className="text-center text-xs text-ink-3">Showing saved copy · syncing…</p>
-              )}
-              {notes.length > 0 ? (
-                <div className="-mx-1 min-h-0 flex-1 px-1 py-1 lg:overflow-y-auto">
-                  <NoteList
-                    notes={notes}
-                    activeId={activeNote?.id ?? null}
-                    now={now}
-                    onSelect={(id) => openNote(id)}
-                  />
-                </div>
-              ) : (
-                <div className="lg:hidden">
-                  <EmptyRoom
-                    roomId={roomId}
-                    onNewNote={newNote}
-                    onPaste={pasteAsNote}
-                    onShare={() => setShareOpen(true)}
-                  />
-                </div>
-              )}
             </aside>
 
             {/* Editor */}
             <div
               className={`min-h-0 flex-1 flex-col ${
-                editingOnPhone ? "fixed inset-0 z-40 flex bg-surface pt-[env(safe-area-inset-top)] lg:static lg:z-auto lg:bg-transparent lg:pt-0" : "hidden lg:flex"
-              }`}
+                editingOnPhone ? "flex lg:pt-0" : "hidden lg:flex"
+              } ${editingOnPhone && view.connection !== "offline" && view.sync !== "unsynced" ? "pt-[env(safe-area-inset-top)]" : ""}`}
             >
               {activeNote ? (
                 <NoteEditor
@@ -296,7 +319,11 @@ export function RoomScreen({ roomId }: { roomId: string }) {
         </div>
       </Dialog>
 
-      <ToastStack toasts={toasts} onDismiss={dismissToast} />
+      <ToastStack
+        toasts={toasts}
+        onDismiss={dismissToast}
+        className={editingOnPhone ? "bottom-24" : notes.length > 0 ? "bottom-[5.5rem]" : "bottom-4"}
+      />
     </div>
   );
 }

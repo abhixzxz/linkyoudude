@@ -46,12 +46,15 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
 export function ToastStack({
   toasts,
   onDismiss,
+  className = "bottom-4",
 }: {
   toasts: Toast[];
   onDismiss: (id: Toast["id"]) => void;
+  /** Vertical placement; the stack is absolutely positioned in its container. */
+  className?: string;
 }) {
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-50 mx-auto flex w-full max-w-md flex-col gap-2 px-4 lg:bottom-6">
+    <div className={`pointer-events-none absolute inset-x-0 z-50 mx-auto flex w-full max-w-md flex-col gap-2 px-4 lg:bottom-6 ${className}`}>
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onDismiss={() => onDismiss(toast.id)} />
       ))}

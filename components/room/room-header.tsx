@@ -15,6 +15,7 @@ export function RoomHeader({
   devices,
   onShare,
   showRoomControls = true,
+  className = "",
 }: {
   roomId: string;
   inviteLink: string;
@@ -22,12 +23,13 @@ export function RoomHeader({
   devices?: Device[];
   onShare: () => void;
   showRoomControls?: boolean;
+  className?: string;
 }) {
   const formatted = formatRoomId(roomId);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-bg/80 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
-      <div className="mx-auto flex h-16 w-full max-w-[90rem] items-center gap-3 px-4 sm:px-6">
+    <header className={`z-30 shrink-0 border-b border-line bg-bg/80 pt-[env(safe-area-inset-top)] backdrop-blur-xl ${className}`}>
+      <div className="mx-auto flex h-14 w-full max-w-[90rem] items-center gap-3 px-4 sm:h-16 sm:px-6">
         <div className="hidden sm:block">
           <Brand />
         </div>
