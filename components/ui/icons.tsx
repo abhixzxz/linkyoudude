@@ -113,3 +113,33 @@ export const NoteIcon = (p: IconProps) => (
     <path d="M14 3.5V9h5.5M8.5 13h7M8.5 16.5h4.5" />
   </Icon>
 );
+
+export const WandIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="m4 20 11-11M14 5l1-2 1 2 2 1-2 1-1 2-1-2-2-1 2-1ZM19 12l.7-1.3L21 10l-1.3-.7L19 8l-.7 1.3L17 10l1.3.7L19 12Z" />
+    <path d="m13 10 1 1" />
+  </Icon>
+);
+
+export const CompareIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="3.5" y="4" width="7" height="16" rx="2" />
+    <rect x="13.5" y="4" width="7" height="16" rx="2" />
+    <path d="M6 9h2M6 12.5h2M16 9h2M16 12.5h2M16 16h2" />
+  </Icon>
+);
+
+export const SwapIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M7 4 3.5 7.5 7 11M3.5 7.5h13M17 13l3.5 3.5L17 20M20.5 16.5h-13" />
+  </Icon>
+);
+
+export const ChevronIcon = (p: IconProps & { direction?: "up" | "down" }) => {
+  const { direction = "down", ...rest } = p;
+  return (
+    <Icon {...rest}>
+      <path d={direction === "down" ? "m6 9 6 6 6-6" : "m6 15 6-6 6 6"} />
+    </Icon>
+  );
+};

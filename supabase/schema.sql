@@ -25,6 +25,21 @@ create table if not exists public.notes (
 create index if not exists notes_room_id_created_at_idx
   on public.notes (room_id, created_at desc);
 
+-- Rooms remember which browser created them (an anonymous ID kept in an
+-- httpOnly cookie) so each one can keep at most N rooms.
+alter table public.rooms add column if not exists owner_id text;
+do $$
+begin
+  alter table public.rooms add constraint rooms_owner_id_format
+    check (owner_id is null or owner_id ~ '^[A-Za-z0-9_-]{16,64}$');
+exception
+  when duplicate_object then null;
+end;
+$$;
+create index if not exists rooms_owner_id_created_at_idx
+  on public.rooms (owner_id, created_at desc)
+  where owner_id is not null;
+
 alter table public.rooms enable row level security;
 alter table public.notes enable row level security;
 revoke all on table public.rooms, public.notes from anon, authenticated;
@@ -59,18 +74,64 @@ as $$
      and last_active_at < now() - interval '5 minutes';
 $$;
 
-create or replace function public.lyd_create_room(p_room_id text)
-returns boolean
+-- Creates a room and enforces the per-owner cap: once an owner has more than
+-- p_max_rooms rooms, the oldest ones (and their notes) are deleted. Returns
+-- {"created": bool, "evicted": [room ids]}.
+drop function if exists public.lyd_create_room(text);
+create or replace function public.lyd_create_room(
+  p_room_id text,
+  p_owner_id text,
+  p_max_rooms integer
+)
+returns jsonb
 language plpgsql
 set search_path = ''
 as $$
+declare
+  v_evicted text[];
 begin
-  insert into public.rooms (id) values (p_room_id);
-  return true;
-exception
-  when unique_violation then
-    return false;
+  -- Serialize one owner's creates so two at once can't both slip past the cap.
+  perform pg_advisory_xact_lock(hashtextextended('lyd_owner:' || p_owner_id, 0));
+  begin
+    insert into public.rooms (id, owner_id) values (p_room_id, p_owner_id);
+  exception
+    when unique_violation then
+      return jsonb_build_object('created', false, 'evicted', '[]'::jsonb);
+  end;
+
+  with doomed as (
+    select id
+      from public.rooms
+     where owner_id = p_owner_id
+     order by created_at desc, id desc
+    offset greatest(p_max_rooms, 1)
+  ), deleted as (
+    delete from public.rooms r
+     using doomed
+     where r.id = doomed.id
+    returning r.id
+  )
+  select coalesce(array_agg(id), '{}') into v_evicted from deleted;
+
+  return jsonb_build_object('created', true, 'evicted', to_jsonb(v_evicted));
 end;
+$$;
+
+create or replace function public.lyd_list_owner_rooms(p_owner_id text)
+returns jsonb
+language sql
+stable
+set search_path = ''
+as $$
+  select coalesce(
+    jsonb_agg(
+      jsonb_build_object('id', id, 'createdAt', created_at, 'lastActiveAt', last_active_at)
+      order by created_at desc
+    ),
+    '[]'::jsonb
+  )
+  from public.rooms
+  where owner_id = p_owner_id;
 $$;
 
 create or replace function public.lyd_get_room(p_room_id text)
@@ -193,7 +254,8 @@ $$;
 revoke execute on function
   public.lyd_note_json(public.notes),
   public.lyd_touch_room(text),
-  public.lyd_create_room(text),
+  public.lyd_create_room(text, text, integer),
+  public.lyd_list_owner_rooms(text),
   public.lyd_get_room(text),
   public.lyd_create_note(text, uuid, text, text, text),
   public.lyd_update_note(text, uuid, integer, text, text, text),
@@ -203,7 +265,8 @@ from public, anon, authenticated;
 grant execute on function
   public.lyd_note_json(public.notes),
   public.lyd_touch_room(text),
-  public.lyd_create_room(text),
+  public.lyd_create_room(text, text, integer),
+  public.lyd_list_owner_rooms(text),
   public.lyd_get_room(text),
   public.lyd_create_note(text, uuid, text, text, text),
   public.lyd_update_note(text, uuid, integer, text, text, text),

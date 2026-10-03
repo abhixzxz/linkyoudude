@@ -7,6 +7,7 @@ export type Toast = {
   id: number | string;
   tone: "info" | "warning" | "error" | "success";
   message: string;
+  action?: { label: string; onClick: () => void };
 };
 
 const toneDot: Record<Toast["tone"], string> = {
@@ -31,6 +32,18 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
     >
       <span className={`mt-1.5 size-2 shrink-0 rounded-full ${toneDot[toast.tone]}`} />
       <p className="flex-1 leading-relaxed">{toast.message}</p>
+      {toast.action && (
+        <button
+          type="button"
+          onClick={() => {
+            toast.action?.onClick();
+            onDismiss();
+          }}
+          className="focus-ring -my-1 shrink-0 rounded-lg px-2 py-1 font-semibold text-accent hover:bg-accent-soft"
+        >
+          {toast.action.label}
+        </button>
+      )}
       <button
         type="button"
         onClick={onDismiss}

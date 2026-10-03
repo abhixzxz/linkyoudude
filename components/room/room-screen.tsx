@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { beautify } from "@/lib/beautify";
 import { readClipboardText } from "@/lib/clipboard";
+import { BODY_MAX_LENGTH } from "@/lib/notes";
 import { forgetRoom, rememberRoom } from "@/lib/recent-rooms";
 import { roomPath } from "@/lib/room-id";
 import { useRoomEngine } from "@/lib/use-room-engine";
@@ -99,10 +101,36 @@ export function RoomScreen({ roomId }: { roomId: string }) {
     else setMobileEditing(false);
   }, []);
 
-  const toast = useCallback((tone: Toast["tone"], message: string) => {
-    const id = `local-${++toastSeq}`;
-    setLocalToasts((list) => [...list.slice(-2), { id, tone, message }]);
-  }, []);
+  const toast = useCallback(
+    (tone: Toast["tone"], message: string, action?: Toast["action"]) => {
+      const id = `local-${++toastSeq}`;
+      setLocalToasts((list) => [...list.slice(-2), { id, tone, message, action }]);
+    },
+    [],
+  );
+
+  const beautifyNote = useCallback(
+    (id: string) => {
+      const before = engine.getSnapshot().notes.find((note) => note.id === id)?.body;
+      if (before === undefined) return;
+      const result = beautify(before);
+      if (result.error) return toast("error", result.summary);
+      if (!result.changed) return toast("info", result.summary);
+      if (result.text.length > BODY_MAX_LENGTH) {
+        return toast("error", "Formatted text would be longer than the 100,000 character limit.");
+      }
+      engine.editNote(id, { body: result.text });
+      toast("success", result.summary, {
+        label: "Undo",
+        onClick: () => {
+          // Only undo if nothing was typed since.
+          const current = engine.getSnapshot().notes.find((note) => note.id === id)?.body;
+          if (current === result.text) engine.editNote(id, { body: before });
+        },
+      });
+    },
+    [engine, toast],
+  );
 
   const newNote = useCallback(() => {
     openNote(engine.createNote(), "body");
@@ -263,6 +291,7 @@ export function RoomScreen({ roomId }: { roomId: string }) {
                   onChange={(patch) => engine.editNote(activeNote.id, patch)}
                   onDelete={() => setPendingDelete(activeNote.id)}
                   onBack={closeEditor}
+                  onBeautify={() => beautifyNote(activeNote.id)}
                 />
               ) : (
                 <EmptyRoom

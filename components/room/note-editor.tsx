@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
+import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
+import { jsonStatus } from "@/lib/beautify";
 import { BODY_MAX_LENGTH, TITLE_MAX_LENGTH } from "@/lib/notes";
 import type { NoteView } from "@/lib/sync/room-engine";
 import { formatRelative } from "@/lib/use-client-value";
 import { CopyButton } from "@/components/ui/copy-button";
 import { buttonClass } from "@/components/ui/button";
-import { ArrowLeftIcon, TrashIcon } from "@/components/ui/icons";
+import { ArrowLeftIcon, TrashIcon, WandIcon } from "@/components/ui/icons";
 
 type Field = HTMLInputElement | HTMLTextAreaElement;
 
@@ -45,12 +46,31 @@ function usePreservedCaret(ref: RefObject<Field | null>, value: string) {
   return record;
 }
 
-function SaveState({ note, now }: { note: NoteView; now: number }) {
+function SaveState({ note, now, short = false }: { note: NoteView; now: number; short?: boolean }) {
   if (note.failed) {
-    return <span className="text-warning">Not synced — retrying</span>;
+    return <span className="text-warning">{short ? "Not synced" : "Not synced — retrying"}</span>;
   }
   if (note.unsaved) return <span>Saving…</span>;
-  return <span>Saved {formatRelative(note.updatedAt, now)}</span>;
+  return <span>{short ? "Saved" : `Saved ${formatRelative(note.updatedAt, now)}`}</span>;
+}
+
+function JsonBadge({ body }: { body: string }) {
+  // Deferred so checking big notes never slows down typing.
+  const deferred = useDeferredValue(body);
+  const status = useMemo(() => jsonStatus(deferred), [deferred]);
+  if (status === "none") return null;
+  return status === "valid" ? (
+    <span className="rounded-md bg-success-soft px-1.5 py-0.5 font-mono text-[11px] font-semibold text-success">
+      JSON
+    </span>
+  ) : (
+    <span
+      className="rounded-md bg-danger-soft px-1.5 py-0.5 font-mono text-[11px] font-semibold text-danger"
+      title="This looks like JSON but has a syntax error. Tap Beautify to see where."
+    >
+      JSON error
+    </span>
+  );
 }
 
 export function NoteEditor({
@@ -60,6 +80,7 @@ export function NoteEditor({
   onChange,
   onDelete,
   onBack,
+  onBeautify,
 }: {
   note: NoteView;
   now: number;
@@ -67,6 +88,7 @@ export function NoteEditor({
   onChange: (patch: { title?: string; body?: string }) => void;
   onDelete: () => void;
   onBack: () => void;
+  onBeautify: () => void;
 }) {
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
@@ -87,22 +109,39 @@ export function NoteEditor({
       className="flex min-h-0 flex-1 flex-col overflow-hidden bg-surface lg:rounded-3xl lg:border lg:border-line lg:shadow-card"
       aria-label="Note editor"
     >
-      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-line px-2 keyboard-open:h-12 lg:hidden">
-        <button type="button" onClick={onBack} className={buttonClass("ghost", "md", "px-3")}>
+      {/* Top bar: back (phones), save state, JSON badge, Beautify, delete (phones). */}
+      <div className="flex h-14 shrink-0 items-center gap-1.5 border-b border-line px-2 keyboard-open:h-12 lg:px-4">
+        <button type="button" onClick={onBack} className={buttonClass("ghost", "md", "px-3 lg:hidden")}>
           <ArrowLeftIcon />
           Notes
         </button>
-        <span className="ml-auto text-xs text-ink-3">
+        <span className="hidden text-xs text-ink-3 lg:inline">
           <SaveState note={note} now={now} />
         </span>
-        <button
-          type="button"
-          onClick={onDelete}
-          className={buttonClass("danger", "icon")}
-          aria-label="Delete note"
-        >
-          <TrashIcon />
-        </button>
+        <div className="ml-auto flex items-center gap-1.5">
+          <span className="text-xs text-ink-3 lg:hidden">
+            <SaveState note={note} now={now} short />
+          </span>
+          <JsonBadge body={note.body} />
+          <button
+            type="button"
+            onClick={onBeautify}
+            disabled={!note.body.trim()}
+            className={buttonClass("secondary", "sm", "h-10 px-2.5 min-[400px]:px-3 lg:h-9")}
+            title="Beautify: format JSON and tidy spacing"
+          >
+            <WandIcon />
+            <span className="max-[399px]:sr-only">Beautify</span>
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            className={buttonClass("danger", "icon", "lg:hidden")}
+            aria-label="Delete note"
+          >
+            <TrashIcon />
+          </button>
+        </div>
       </div>
 
       <input
