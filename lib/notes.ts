@@ -26,12 +26,15 @@ export type RoomEvent =
   | { type: "note_upsert"; note: Note }
   | { type: "note_delete"; id: string }
   /** Sent instead of note_upsert when the note is too large to broadcast. */
-  | { type: "note_stale"; id: string; version: number };
+  | { type: "note_stale"; id: string; version: number }
+  /** The room was deleted because its creator went over the room limit. */
+  | { type: "room_deleted" };
 
 export const ROOM_EVENT_NAMES = [
   "note_upsert",
   "note_delete",
   "note_stale",
+  "room_deleted",
 ] as const;
 
 const UUID_PATTERN =
@@ -208,6 +211,8 @@ export function parseRoomEvent(event: string, payload: unknown): RoomEvent | nul
         Number.isSafeInteger(payload.version)
         ? { type: "note_stale", id: payload.id.toLowerCase(), version: payload.version }
         : null;
+    case "room_deleted":
+      return { type: "room_deleted" };
     default:
       return null;
   }

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { generateRoomId } from "@/lib/room-id";
+import { MAX_ROOMS_PER_OWNER, generateRoomId, isRoomId } from "@/lib/room-id";
 import {
   parseNote,
   parseRoomSnapshot,
@@ -25,13 +25,37 @@ function noteOrThrow(raw: unknown): Note {
   return note;
 }
 
-export async function createRoom(): Promise<string> {
+export type OwnedRoom = { id: string; createdAt: string; lastActiveAt: string };
+
+/**
+ * Creates a room owned by `ownerId`. If that pushes the owner over
+ * MAX_ROOMS_PER_OWNER, the database deletes their oldest rooms in the same
+ * transaction and returns their IDs.
+ */
+export async function createRoom(ownerId: string): Promise<{ roomId: string; evicted: string[] }> {
   // A collision is astronomically unlikely, but retry rather than fail.
   for (let attempt = 0; attempt < 5; attempt++) {
     const id = generateRoomId();
-    if (await rpc<boolean>("lyd_create_room", { p_room_id: id })) return id;
+    const result = await rpc<{ created?: boolean; evicted?: unknown }>("lyd_create_room", {
+      p_room_id: id,
+      p_owner_id: ownerId,
+      p_max_rooms: MAX_ROOMS_PER_OWNER,
+    });
+    if (result?.created) {
+      const evicted = Array.isArray(result.evicted) ? result.evicted.filter(isRoomId) : [];
+      return { roomId: id, evicted };
+    }
   }
   throw new Error("Could not allocate a unique room ID");
+}
+
+export async function listOwnedRooms(ownerId: string): Promise<OwnedRoom[]> {
+  const raw = await rpc<unknown>("lyd_list_owner_rooms", { p_owner_id: ownerId });
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(
+    (room): room is OwnedRoom =>
+      isRoomId(room?.id) && typeof room?.createdAt === "string" && typeof room?.lastActiveAt === "string",
+  );
 }
 
 export async function getRoom(roomId: string): Promise<RoomSnapshot | null> {

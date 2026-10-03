@@ -4,6 +4,9 @@
 export const ROOM_ID_ALPHABET = "23456789abcdefghjkmnpqrstuvwxyz";
 export const ROOM_ID_LENGTH = 10;
 
+/** Each browser keeps at most this many rooms; a new one replaces the oldest. */
+export const MAX_ROOMS_PER_OWNER = 5;
+
 const ROOM_ID_PATTERN = new RegExp(
   `^[${ROOM_ID_ALPHABET}]{${ROOM_ID_LENGTH}}$`,
 );
