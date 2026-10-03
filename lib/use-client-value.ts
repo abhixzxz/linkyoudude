@@ -1,0 +1,39 @@
+"use client";
+
+import { useEffect, useState, useSyncExternalStore } from "react";
+
+const noopSubscribe = () => () => {};
+
+/** A browser-only value; `fallback` during SSR and hydration. */
+export function useClientValue<T>(read: () => T, fallback: T): T {
+  return useSyncExternalStore(noopSubscribe, read, () => fallback);
+}
+
+export function useOrigin() {
+  return useClientValue(() => window.location.origin, "");
+}
+
+/** Current time, refreshed periodically for "2m ago" labels. */
+export function useNow(intervalMs = 30_000) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), intervalMs);
+    return () => clearInterval(timer);
+  }, [intervalMs]);
+  return now;
+}
+
+export function formatRelative(iso: string | null, now: number): string {
+  if (!iso) return "";
+  const then = Date.parse(iso);
+  if (Number.isNaN(then)) return "";
+  const seconds = Math.max(0, Math.round((now - then) / 1000));
+  if (seconds < 45) return "just now";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(then).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
