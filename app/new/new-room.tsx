@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { roomPath } from "@/lib/room-id";
 import { Brand } from "@/components/ui/brand";
 import { buttonClass } from "@/components/ui/button";
 import { RefreshIcon } from "@/components/ui/icons";
-import { requestNewRoom } from "@/components/home/create-room-button";
+import { newRoomUrl, requestNewRoom } from "@/components/home/create-room-button";
 
 export function NewRoom() {
   const router = useRouter();
@@ -20,7 +19,7 @@ export function NewRoom() {
     if (started.current === attempt) return;
     started.current = attempt;
     requestNewRoom().then((result) => {
-      if (result.ok) router.replace(roomPath(result.roomId));
+      if (result.ok) router.replace(newRoomUrl(result.roomId, result.evicted));
       else setError(result.message);
     });
   }, [attempt, router]);

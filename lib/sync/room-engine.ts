@@ -59,6 +59,8 @@ export type RoomView = {
   roomId: string;
   status: RoomStatus;
   errorMessage: string | null;
+  /** Why the room disappeared while open: deleted by its creator's room limit. */
+  goneReason: "closed" | null;
   connection: ConnectionState;
   sync: SyncState;
   /** False until the first server snapshot arrives (may be showing cache). */
@@ -181,6 +183,7 @@ export class RoomEngine {
   private redirectListeners = new Set<(from: string, to: string) => void>();
   private status: RoomStatus = "loading";
   private errorMessage: string | null = null;
+  private goneReason: "closed" | null = null;
   private socketLive = false;
   private everSubscribed = false;
   private online = true;
@@ -442,6 +445,9 @@ export class RoomEngine {
         }
         break;
       }
+      case "room_deleted":
+        this.markRoomGone("closed");
+        break;
       case "note_stale": {
         const entry = this.entries.get(event.id);
         if (!entry?.server || entry.server.version < event.version) {
@@ -763,8 +769,9 @@ export class RoomEngine {
     }
   }
 
-  private markRoomGone() {
+  private markRoomGone(reason: "closed" | null = null) {
     this.status = "not_found";
+    this.goneReason = reason ?? this.goneReason;
     this.entries.clear();
     try {
       this.storage?.removeItem(storageKey(this.roomId));
@@ -926,6 +933,7 @@ export class RoomEngine {
       roomId: this.roomId,
       status: this.status,
       errorMessage: this.errorMessage,
+      goneReason: this.goneReason,
       connection,
       sync: failed ? "unsynced" : pending ? "saving" : "saved",
       synced: this.synced,

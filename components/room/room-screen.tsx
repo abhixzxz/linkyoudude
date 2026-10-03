@@ -5,7 +5,7 @@ import { beautify } from "@/lib/beautify";
 import { readClipboardText } from "@/lib/clipboard";
 import { BODY_MAX_LENGTH } from "@/lib/notes";
 import { forgetRoom, rememberRoom } from "@/lib/recent-rooms";
-import { roomPath } from "@/lib/room-id";
+import { MAX_ROOMS_PER_OWNER, formatRoomId, roomPath } from "@/lib/room-id";
 import { useRoomEngine } from "@/lib/use-room-engine";
 import { useVisualViewport } from "@/lib/use-visual-viewport";
 import { useNow, useOrigin } from "@/lib/use-client-value";
@@ -29,7 +29,14 @@ import { ShareDialog } from "./share-dialog";
 const DESKTOP_QUERY = "(min-width: 1024px)";
 let toastSeq = 0;
 
-export function RoomScreen({ roomId }: { roomId: string }) {
+export function RoomScreen({
+  roomId,
+  clearedRooms = [],
+}: {
+  roomId: string;
+  /** Rooms deleted to make space for this one (from the create flow). */
+  clearedRooms?: string[];
+}) {
   const { engine, view } = useRoomEngine(roomId);
   useVisualViewport();
   const origin = useOrigin();
@@ -41,7 +48,22 @@ export function RoomScreen({ roomId }: { roomId: string }) {
   const [focusField, setFocusField] = useState<"title" | "body" | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
-  const [localToasts, setLocalToasts] = useState<Toast[]>([]);
+  const [localToasts, setLocalToasts] = useState<Toast[]>(() =>
+    clearedRooms.length
+      ? [
+          {
+            id: "cleared",
+            tone: "info",
+            message: `Your oldest room ${clearedRooms.map(formatRoomId).join(", ")} was deleted to make space. Each device keeps up to ${MAX_ROOMS_PER_OWNER} rooms.`,
+          },
+        ]
+      : [],
+  );
+
+  // That notice is one-time: drop ?cleared= so a refresh doesn't repeat it.
+  useEffect(() => {
+    if (clearedRooms.length) window.history.replaceState(window.history.state, "", roomPath(roomId));
+  }, [clearedRooms, roomId]);
 
   const { notes, status } = view;
   const selectedNote = notes.find((note) => note.id === selectedId) ?? null;
@@ -189,7 +211,7 @@ export function RoomScreen({ roomId }: { roomId: string }) {
       {!showRoom && (
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {status === "loading" && <RoomLoading />}
-          {status === "not_found" && <RoomNotFound roomId={roomId} />}
+          {status === "not_found" && <RoomNotFound roomId={roomId} closed={view.goneReason === "closed"} />}
           {status === "error" && <RoomError message={view.errorMessage} onRetry={() => engine.retry()} />}
           {status === "not_configured" && <RoomNotConfigured message={view.errorMessage} />}
         </div>

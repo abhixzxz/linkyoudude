@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { formatRoomId, normalizeRoomId, roomPath } from "@/lib/room-id";
 import { forgetRoom, useRecentRooms } from "@/lib/recent-rooms";
 import { formatRelative, useNow } from "@/lib/use-client-value";
 import { Brand } from "@/components/ui/brand";
 import { buttonClass } from "@/components/ui/button";
-import { ArrowRightIcon, CloseIcon, LinkIcon, PlusIcon } from "@/components/ui/icons";
+import { ArrowRightIcon, CloseIcon, CompareIcon, LinkIcon, PlusIcon } from "@/components/ui/icons";
 import { InstallHint } from "@/components/pwa/install-hint";
-import { CreateRoomButton } from "./create-room-button";
+import { CreateRoomButton, fetchOwnedRooms, type OwnedRoom } from "./create-room-button";
 
 function JoinForm() {
   const router = useRouter();
@@ -68,16 +68,49 @@ function JoinForm() {
   );
 }
 
+function useOwnedRooms() {
+  const [owned, setOwned] = useState<{ rooms: OwnedRoom[]; maxRooms: number } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetchOwnedRooms().then((result) => {
+      if (!cancelled) setOwned(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return owned;
+}
+
 function RecentRooms() {
-  const rooms = useRecentRooms();
+  const recent = useRecentRooms();
+  const owned = useOwnedRooms();
   const now = useNow(60_000);
+  const ownedIds = new Set(owned?.rooms.map((room) => room.id));
+  // Rooms opened here, plus rooms created here that aren't in that list.
+  const rooms = [
+    ...recent,
+    ...(owned?.rooms ?? [])
+      .filter((room) => !recent.some((r) => r.id === room.id))
+      .map((room) => ({ id: room.id, lastOpenedAt: Date.parse(room.createdAt) })),
+  ];
   if (rooms.length === 0) return null;
 
   return (
     <section aria-labelledby="recent-heading" className="rounded-3xl border border-line bg-surface p-5 shadow-card sm:p-6">
-      <h2 id="recent-heading" className="text-sm font-semibold uppercase tracking-wider text-ink-3">
-        Your rooms on this device
-      </h2>
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 id="recent-heading" className="text-sm font-semibold uppercase tracking-wider text-ink-3">
+          Your rooms on this device
+        </h2>
+        {owned && owned.rooms.length > 0 && (
+          <span
+            className="text-xs tabular-nums text-ink-3"
+            title={`Each device keeps up to ${owned.maxRooms} rooms. Creating another replaces the oldest.`}
+          >
+            {owned.rooms.length} of {owned.maxRooms} created here
+          </span>
+        )}
+      </div>
       <ul className="mt-3 divide-y divide-line">
         {rooms.map((room) => (
           <li key={room.id} className="flex items-center gap-2 py-1.5">
@@ -88,7 +121,10 @@ function RecentRooms() {
               <span className="font-mono text-[16px] font-semibold tracking-[0.06em]">
                 {formatRoomId(room.id)}
               </span>
-              <span className="text-sm text-ink-3">opened {formatRelative(new Date(room.lastOpenedAt).toISOString(), now)}</span>
+              <span className="truncate text-sm text-ink-3">
+                {ownedIds.has(room.id) ? "yours · " : ""}
+                {formatRelative(new Date(room.lastOpenedAt).toISOString(), now)}
+              </span>
               <ArrowRightIcon className="ml-auto text-ink-3 transition-transform group-hover:translate-x-0.5 group-hover:text-ink" />
             </Link>
             <button
@@ -119,6 +155,10 @@ export function HomeScreen() {
       <header className="pt-[env(safe-area-inset-top)]">
         <div className="mx-auto flex h-14 w-full max-w-5xl items-center px-4 sm:h-16 sm:px-6">
           <Brand />
+          <Link href="/compare" className={buttonClass("secondary", "sm", "ml-auto")}>
+            <CompareIcon size={16} />
+            Compare
+          </Link>
         </div>
       </header>
 
@@ -147,7 +187,8 @@ export function HomeScreen() {
             </div>
             <h2 className="text-lg font-semibold tracking-tight sm:mt-5 sm:text-xl">Create room</h2>
             <p className="mt-1.5 hidden flex-1 text-[15px] leading-relaxed text-ink-2 sm:block">
-              Start a fresh room, then open it on any other device with its ID or QR code.
+              Start a fresh room, then open it on any other device with its ID or QR code. Keep up
+              to 5; a new one replaces your oldest.
             </p>
             <CreateRoomButton className="mt-3 sm:mt-6" label="Create Room" />
           </div>
@@ -179,6 +220,22 @@ export function HomeScreen() {
         <div className="hidden sm:block">
           <InstallHint />
         </div>
+
+        <Link
+          href="/compare"
+          className="focus-ring group hidden items-center gap-5 rounded-3xl border border-line bg-surface p-6 shadow-card transition-colors hover:border-line-strong sm:flex sm:p-7"
+        >
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-accent-soft text-accent-soft-ink">
+            <CompareIcon size={22} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xl font-semibold tracking-tight">Compare</h2>
+            <p className="mt-1 text-[15px] leading-relaxed text-ink-2">
+              Paste two versions of a prompt or JSON and see exactly what changed, with change counts.
+            </p>
+          </div>
+          <ArrowRightIcon className="shrink-0 text-ink-3 transition-transform group-hover:translate-x-0.5 group-hover:text-ink" />
+        </Link>
 
         <section aria-label="How it works" className="hidden gap-3 sm:grid sm:grid-cols-3">
           {STEPS.map((step, index) => (

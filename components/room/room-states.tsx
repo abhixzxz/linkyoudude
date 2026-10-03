@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { formatRoomId } from "@/lib/room-id";
+import { MAX_ROOMS_PER_OWNER, formatRoomId } from "@/lib/room-id";
 import { buttonClass } from "@/components/ui/button";
 import { ClipboardIcon, NoteIcon, PlusIcon, QrIcon, RefreshIcon } from "@/components/ui/icons";
 import { CreateRoomButton } from "@/components/home/create-room-button";
@@ -45,11 +45,18 @@ export function RoomLoading() {
   );
 }
 
-export function RoomNotFound({ roomId }: { roomId: string | null }) {
+export function RoomNotFound({
+  roomId,
+  closed = false,
+}: {
+  roomId: string | null;
+  /** The room was deleted while open (its creator went over the room limit). */
+  closed?: boolean;
+}) {
   return (
     <StatePanel
       icon={<NoteIcon size={26} />}
-      title="Room not found"
+      title={closed ? "This room was cleared" : "Room not found"}
       actions={
         <>
           <CreateRoomButton variant="primary" />
@@ -59,7 +66,13 @@ export function RoomNotFound({ roomId }: { roomId: string | null }) {
         </>
       }
     >
-      {roomId ? (
+      {roomId && closed ? (
+        <p>
+          Room <span className="font-mono font-semibold text-ink">{formatRoomId(roomId)}</span> was
+          deleted because the device that created it started a new room. Each device keeps up to{" "}
+          {MAX_ROOMS_PER_OWNER} rooms, and the oldest one makes way.
+        </p>
+      ) : roomId ? (
         <p>
           There&apos;s no room with the ID{" "}
           <span className="font-mono font-semibold text-ink">{formatRoomId(roomId)}</span>. Check

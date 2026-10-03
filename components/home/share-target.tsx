@@ -5,14 +5,14 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { BODY_MAX_LENGTH, TITLE_MAX_LENGTH, sanitizeText } from "@/lib/notes";
 import { forgetRoom, useRecentRooms } from "@/lib/recent-rooms";
-import { formatRoomId, roomPath } from "@/lib/room-id";
+import { formatRoomId } from "@/lib/room-id";
 import { uuid } from "@/lib/uuid";
 import { Brand } from "@/components/ui/brand";
 import { buttonClass } from "@/components/ui/button";
 import { ArrowRightIcon, PlusIcon } from "@/components/ui/icons";
-import { requestNewRoom } from "./create-room-button";
+import { newRoomUrl, requestNewRoom } from "./create-room-button";
 
-async function addNote(roomId: string, title: string, body: string) {
+async function addNote(roomId: string, title: string, body: string): Promise<"ok" | "not_found" | "error" | "offline"> {
   try {
     const response = await fetch(`/api/rooms/${roomId}/notes`, {
       method: "POST",
@@ -38,12 +38,12 @@ export function ShareTarget({ title, body }: { title: string; body: string }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function sendTo(roomId: string) {
+  async function sendTo(roomId: string, evicted: string[] = []) {
     setBusy(roomId);
     setError(null);
     const result = await addNote(roomId, title, body);
     if (result === "ok") {
-      router.replace(roomPath(roomId));
+      router.replace(newRoomUrl(roomId, evicted));
       return;
     }
     setBusy(null);
@@ -68,7 +68,7 @@ export function ShareTarget({ title, body }: { title: string; body: string }) {
       setError(created.message);
       return;
     }
-    await sendTo(created.roomId);
+    await sendTo(created.roomId, created.evicted);
   }
 
   const empty = !title.trim() && !body.trim();

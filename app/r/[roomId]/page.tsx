@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { formatRoomId, normalizeRoomId, roomPath } from "@/lib/room-id";
+import { formatRoomId, isRoomId, normalizeRoomId, roomPath } from "@/lib/room-id";
 import { RoomHeaderless } from "@/components/room/room-headerless";
 import { RoomScreen } from "@/components/room/room-screen";
 
@@ -27,5 +27,7 @@ export default async function RoomPage(props: PageProps<"/r/[roomId]">) {
   if (!roomId) return <RoomHeaderless />;
   // Canonical, readable URL: /r/abcde-fghjk
   if (raw !== formatRoomId(roomId)) redirect(roomPath(roomId));
-  return <RoomScreen key={roomId} roomId={roomId} />;
+  const { cleared } = await props.searchParams;
+  const clearedRooms = (typeof cleared === "string" ? cleared.split(",") : []).filter(isRoomId).slice(0, 5);
+  return <RoomScreen key={roomId} roomId={roomId} clearedRooms={clearedRooms} />;
 }

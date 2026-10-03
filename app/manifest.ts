@@ -35,6 +35,13 @@ export default function manifest(): MetadataRoute.Manifest {
         url: "/new",
         icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
       },
+      {
+        name: "Compare texts",
+        short_name: "Compare",
+        description: "See what changed between two versions",
+        url: "/compare",
+        icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+      },
     ],
     // Reopening the installed app (or sharing into it) reuses the open window.
     launch_handler: { client_mode: ["navigate-existing", "auto"] },
